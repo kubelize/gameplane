@@ -1,0 +1,16 @@
+{{ define "main" }}
+<div class="container mt-4">
+    <article>
+        <header class="mb-4">
+            <h1>{{ .Title }}</h1>
+            {{ if .Date }}
+            <p class="text-muted">{{ .Date.Format "January 2, 2006" }}</p>
+            {{ end }}
+        </header>
+        
+        <div class="content">
+            {{ .Content }}
+        </div>
+    </article>
+</div>
+{{ end }}

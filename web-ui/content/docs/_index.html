@@ -1,0 +1,320 @@
+---
+title: "Documentation"
+layout: "docs"
+description: "GamePlane documentation and guides"
+---
+<div class="container my-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Documentation</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Sidebar Navigation -->
+        <div class="col-lg-3">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Documentation</h6>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="#getting-started" class="list-group-item list-group-item-action">
+                        <i class="fas fa-play me-2"></i>Getting Started
+                    </a>
+                    <a href="#game-types" class="list-group-item list-group-item-action">
+                        <i class="fas fa-gamepad me-2"></i>Supported Games
+                    </a>
+                    <a href="#configuration" class="list-group-item list-group-item-action">
+                        <i class="fas fa-cogs me-2"></i>Configuration
+                    </a>
+                    <a href="#troubleshooting" class="list-group-item list-group-item-action">
+                        <i class="fas fa-wrench me-2"></i>Troubleshooting
+                    </a>
+                    <a href="#api" class="list-group-item list-group-item-action">
+                        <i class="fas fa-code me-2"></i>API Reference
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h1 class="mb-4">GamePlane Documentation</h1>
+                    <p class="lead">Learn how to create, configure, and manage game servers with GamePlane.</p>
+
+                    <!-- Getting Started -->
+                    <section id="getting-started" class="mb-5">
+                        <h2><i class="fas fa-play text-primary me-2"></i>Getting Started</h2>
+                        <p>GamePlane makes it easy to deploy and manage dedicated game servers on Kubernetes. Follow these steps to get your first server running:</p>
+                        
+                        <ol>
+                            <li><strong>Choose Your Game:</strong> Select from our supported game types</li>
+                            <li><strong>Configure Resources:</strong> Set CPU, memory, and storage requirements</li>
+                            <li><strong>Customize Settings:</strong> Configure game-specific options</li>
+                            <li><strong>Deploy:</strong> Click "Create Server" and wait for deployment</li>
+                            <li><strong>Connect:</strong> Use the provided connection details to join your server</li>
+                        </ol>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Tip:</strong> Start with the default resource settings and scale up as needed based on player count and performance.
+                        </div>
+                    </section>
+
+                    <!-- Game Types -->
+                    <section id="game-types" class="mb-5">
+                        <h2><i class="fas fa-gamepad text-primary me-2"></i>Supported Games</h2>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <span class="badge bg-info me-2">SDTD</span>
+                                            7 Days to Die
+                                        </h5>
+                                        <p class="card-text">Survival horror with tower defense elements.</p>
+                                        <ul class="small">
+                                            <li>Default ports: 26900-26902</li>
+                                            <li>Recommended: 2 CPU, 4GB RAM</li>
+                                            <li>Storage: 20GB minimum</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <span class="badge bg-success me-2">Valheim</span>
+                                            Valheim
+                                        </h5>
+                                        <p class="card-text">Viking-themed survival and exploration game.</p>
+                                        <ul class="small">
+                                            <li>Default ports: 2456-2458</li>
+                                            <li>Recommended: 2 CPU, 4GB RAM</li>
+                                            <li>Storage: 10GB minimum</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <span class="badge bg-warning me-2">Palworld</span>
+                                            Palworld
+                                        </h5>
+                                        <p class="card-text">Creature collection and survival game.</p>
+                                        <ul class="small">
+                                            <li>Default port: 8211</li>
+                                            <li>Recommended: 4 CPU, 8GB RAM</li>
+                                            <li>Storage: 20GB minimum</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            <span class="badge bg-danger me-2">Conan</span>
+                                            Conan Exiles
+                                        </h5>
+                                        <p class="card-text">Open-world survival in the Conan universe.</p>
+                                        <ul class="small">
+                                            <li>Default ports: 7777, 27015</li>
+                                            <li>Recommended: 4 CPU, 8GB RAM</li>
+                                            <li>Storage: 50GB minimum</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Configuration -->
+                    <section id="configuration" class="mb-5">
+                        <h2><i class="fas fa-cogs text-primary me-2"></i>Configuration</h2>
+                        
+                        <h4>Resource Requirements</h4>
+                        <p>Choose appropriate resources based on your expected player count and game requirements:</p>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Player Count</th>
+                                        <th>CPU</th>
+                                        <th>Memory</th>
+                                        <th>Storage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>1-4 players</td>
+                                        <td>1-2 cores</td>
+                                        <td>2-4 GB</td>
+                                        <td>10-20 GB</td>
+                                    </tr>
+                                    <tr>
+                                        <td>5-10 players</td>
+                                        <td>2-4 cores</td>
+                                        <td>4-8 GB</td>
+                                        <td>20-50 GB</td>
+                                    </tr>
+                                    <tr>
+                                        <td>10+ players</td>
+                                        <td>4-8 cores</td>
+                                        <td>8-16 GB</td>
+                                        <td>50-100 GB</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4>Network Configuration</h4>
+                        <ul>
+                            <li><strong>LoadBalancer:</strong> Provides external IP access (recommended)</li>
+                            <li><strong>NodePort:</strong> Access via cluster node IP and specific port</li>
+                            <li><strong>ClusterIP:</strong> Internal access only</li>
+                        </ul>
+                    </section>
+
+                    <!-- Troubleshooting -->
+                    <section id="troubleshooting" class="mb-5">
+                        <h2><i class="fas fa-wrench text-primary me-2"></i>Troubleshooting</h2>
+                        
+                        <div class="accordion" id="troubleshootingAccordion">
+                            <div class="accordion-item">
+                                <h3 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#server-stuck-pending">
+                                        Server stuck in "Pending" status
+                                    </button>
+                                </h3>
+                                <div id="server-stuck-pending" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                    <div class="accordion-body">
+                                        <p>If your server is stuck in pending status, check:</p>
+                                        <ul>
+                                            <li>Sufficient cluster resources (CPU, memory, storage)</li>
+                                            <li>Node affinity requirements (gaming-optimized nodes)</li>
+                                            <li>Storage class availability and binding mode</li>
+                                            <li>Image pull policies and registry access</li>
+                                        </ul>
+                                        <p>Use <code>kubectl describe pod</code> to see detailed error messages.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h3 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#cant-connect">
+                                        Can't connect to server
+                                    </button>
+                                </h3>
+                                <div id="cant-connect" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                    <div class="accordion-body">
+                                        <p>Connection issues can be caused by:</p>
+                                        <ul>
+                                            <li>Firewall blocking required ports</li>
+                                            <li>LoadBalancer not assigning external IP</li>
+                                            <li>Incorrect server password or settings</li>
+                                            <li>Server still starting up</li>
+                                        </ul>
+                                        <p>Check the server logs for startup errors and verify the external IP is assigned.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h3 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#performance-issues">
+                                        Performance issues
+                                    </button>
+                                </h3>
+                                <div id="performance-issues" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                    <div class="accordion-body">
+                                        <p>To improve server performance:</p>
+                                        <ul>
+                                            <li>Increase CPU and memory allocation</li>
+                                            <li>Ensure SSD storage is being used</li>
+                                            <li>Reduce player count or world size</li>
+                                            <li>Check for resource limits and requests</li>
+                                        </ul>
+                                        <p>Monitor resource usage in the server details to identify bottlenecks.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- API Reference -->
+                    <section id="api" class="mb-5">
+                        <h2><i class="fas fa-code text-primary me-2"></i>API Reference</h2>
+                        
+                        <h4>GameServer Custom Resource</h4>
+                        <p>Example GameServer manifest:</p>
+                        
+                        <pre><code class="language-yaml">apiVersion: gameplane.kubelize.io/v1alpha1
+kind: GameServer
+metadata:
+  name: my-game-server
+  namespace: default
+spec:
+  gameType: sdtd
+  serverName: "My 7DTD Server"
+  serverDescription: "A fun survival server"
+  resources:
+    cpu: "2"
+    memory: "4Gi"
+    storageSize: "20Gi"
+  networking:
+    serviceType: LoadBalancer
+  gameConfig:
+    worldName: "Navezgane"
+    difficulty: 1
+    maxPlayers: 8</code></pre>
+
+                        <h4>Status Fields</h4>
+                        <ul>
+                            <li><code>status.phase</code>: Current deployment phase (Pending, Running, Failed)</li>
+                            <li><code>status.externalIP</code>: External IP address for connections</li>
+                            <li><code>status.ports</code>: Service port mappings</li>
+                            <li><code>status.playersOnline</code>: Current player count</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Smooth scrolling for sidebar links
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebarLinks = document.querySelectorAll('.list-group-item[href^="#"]');
+    
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+                
+                // Update active link
+                sidebarLinks.forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            }
+        });
+    });
+});
+</script>
+

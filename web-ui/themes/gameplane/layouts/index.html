@@ -1,0 +1,141 @@
+{{ define "main" }}
+<!-- Hero Section -->
+<div class="bg-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold">GamePlane</h1>
+                <p class="lead mb-4">Self-service game server management platform powered by Crossplane and Kubernetes</p>
+                <div class="d-flex gap-3">
+                    <a href="/create/" class="btn btn-light btn-lg">
+                        <i class="bi bi-plus-circle"></i> Create Server
+                    </a>
+                    <a href="/docs/" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-book"></i> Documentation
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <i class="bi bi-server display-1"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-lightning-charge text-primary display-4 mb-3"></i>
+                    <h5 class="card-title">Quick Deployment</h5>
+                    <p class="card-text">Deploy game servers in minutes with pre-configured templates for popular games like 7 Days to Die, Conan Exiles, and Palworld.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-gear text-primary display-4 mb-3"></i>
+                    <h5 class="card-title">Easy Management</h5>
+                    <p class="card-text">Manage your game servers with a simple web interface. Monitor status, update configurations, and scale resources on demand.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="bi bi-shield-check text-primary display-4 mb-3"></i>
+                    <h5 class="card-title">Enterprise Ready</h5>
+                    <p class="card-text">Built on Kubernetes and Crossplane for reliability, scalability, and security. Perfect for gaming communities and enterprises.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Supported Games Section -->
+<div class="bg-light py-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Supported Games</h2>
+        <div class="row justify-content-center">
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="game-icon mb-2">
+                    <i class="bi bi-box text-primary display-5"></i>
+                </div>
+                <h6>7 Days to Die</h6>
+            </div>
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="game-icon mb-2">
+                    <i class="bi bi-hammer text-primary display-5"></i>
+                </div>
+                <h6>Conan Exiles</h6>
+            </div>
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="game-icon mb-2">
+                    <i class="bi bi-tree text-primary display-5"></i>
+                </div>
+                <h6>Palworld</h6>
+            </div>
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="game-icon mb-2">
+                    <i class="bi bi-house text-primary display-5"></i>
+                </div>
+                <h6>Valheim</h6>
+            </div>
+            <div class="col-md-2 col-4 text-center mb-4">
+                <div class="game-icon mb-2">
+                    <i class="bi bi-plus-circle-dotted text-primary display-5"></i>
+                </div>
+                <h6>More Coming</h6>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Dashboard -->
+<div class="container my-5">
+    <h2 class="text-center mb-4">Server Status</h2>
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-server display-4"></i>
+                    <h3 class="mt-2" id="running-servers">-</h3>
+                    <p class="mb-0">Running Servers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-clock display-4"></i>
+                    <h3 class="mt-2" id="pending-servers">-</h3>
+                    <p class="mb-0">Pending Servers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-people display-4"></i>
+                    <h3 class="mt-2" id="total-players">-</h3>
+                    <p class="mb-0">Total Players</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-cpu display-4"></i>
+                    <h3 class="mt-2" id="cpu-usage">-</h3>
+                    <p class="mb-0">CPU Usage</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

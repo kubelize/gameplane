@@ -1,0 +1,136 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gameserver-parent
+  labels:
+    provider: kubernetes
+    service: gameserver
+    type: parent
+spec:
+  compositeTypeRef:
+    apiVersion: gameplane.kubelize.io/v1alpha1
+    kind: XGameServer
+  
+  mode: Pipeline
+  pipeline:
+  
+  # Step 1: Route to appropriate child composition based on game type
+  - step: spawn-child-composition
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          {{ $gameType := .observed.composite.resource.spec.gameType }}
+          {{ $fullName := .observed.composite.resource.metadata.name }}
+          {{ $namespace := .observed.composite.resource.metadata.namespace | default "default" }}
+          
+          # Dynamically create the appropriate child composite resource based on game type
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-{{ $gameType }}-child
+            annotations:
+              crossplane.io/external-name: {{ $fullName }}-{{ $gameType }}-child
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-{{ $gameType }}-child
+          spec:
+            forProvider:
+              manifest:
+                # Dynamic API version and kind based on game type
+                {{- if eq $gameType "sdtd" }}
+                apiVersion: gameplane.kubelize.io/v1alpha1
+                kind: XSDTDGameServer
+                {{- else if eq $gameType "ce" }}
+                apiVersion: gameplane.kubelize.io/v1alpha1
+                kind: XConanExilesGameServer
+                {{- else if eq $gameType "pw" }}
+                apiVersion: gameplane.kubelize.io/v1alpha1
+                kind: XPalworldGameServer
+                {{- else if eq $gameType "vh" }}
+                apiVersion: gameplane.kubelize.io/v1alpha1
+                kind: XValheimGameServer
+                {{- else if eq $gameType "we" }}
+                apiVersion: gameplane.kubelize.io/v1alpha1
+                kind: XWhateverGameServer
+                {{- else if eq $gameType "ln" }}
+                apiVersion: gameplane.kubelize.io/v1alpha1
+                kind: XLinuxGameServer
+                {{- end }}
+                metadata:
+                  name: {{ $fullName }}-{{ $gameType }}
+                  namespace: {{ $namespace }}
+                  labels:
+                    parent-gameserver: {{ $fullName }}
+                    game-type: {{ $gameType }}
+                    kubelize.io/managed-by: gameserver-parent
+                spec:
+                  # Pass through all configuration to the child
+                  serverName: {{ .observed.composite.resource.spec.serverName | quote }}
+                  {{- if .observed.composite.resource.spec.serverDescription }}
+                  serverDescription: {{ .observed.composite.resource.spec.serverDescription | quote }}
+                  {{- end }}
+                  
+                  # Resource configuration
+                  {{- if .observed.composite.resource.spec.resources }}
+                  resources:
+                    {{- if .observed.composite.resource.spec.resources.cpu }}
+                    cpu: {{ .observed.composite.resource.spec.resources.cpu | quote }}
+                    {{- end }}
+                    {{- if .observed.composite.resource.spec.resources.memory }}
+                    memory: {{ .observed.composite.resource.spec.resources.memory | quote }}
+                    {{- end }}
+                    {{- if .observed.composite.resource.spec.resources.storageSize }}
+                    storageSize: {{ .observed.composite.resource.spec.resources.storageSize | quote }}
+                    {{- end }}
+                    {{- if .observed.composite.resource.spec.resources.storageClass }}
+                    storageClass: {{ .observed.composite.resource.spec.resources.storageClass | quote }}
+                    {{- end }}
+                  {{- end }}
+                  
+                  # Network configuration
+                  {{- if .observed.composite.resource.spec.networking }}
+                  networking:
+                    {{- if .observed.composite.resource.spec.networking.serviceType }}
+                    serviceType: {{ .observed.composite.resource.spec.networking.serviceType | quote }}
+                    {{- end }}
+                    {{- if .observed.composite.resource.spec.networking.enableIngress }}
+                    enableIngress: {{ .observed.composite.resource.spec.networking.enableIngress }}
+                    {{- end }}
+                    {{- if .observed.composite.resource.spec.networking.ingressHost }}
+                    ingressHost: {{ .observed.composite.resource.spec.networking.ingressHost | quote }}
+                    {{- end }}
+                  {{- end }}
+                  
+                  # Game-specific configuration (passed through as-is)
+                  {{- if .observed.composite.resource.spec.gameConfig }}
+                  gameConfig: {{ .observed.composite.resource.spec.gameConfig | toYaml | nindent 20 }}
+                  {{- end }}
+                  
+                  # Advanced configuration
+                  {{- if .observed.composite.resource.spec.advanced }}
+                  advanced:
+                    {{- if .observed.composite.resource.spec.advanced.affinity }}
+                    affinity: {{ .observed.composite.resource.spec.advanced.affinity | toYaml | nindent 22 }}
+                    {{- end }}
+                    {{- if .observed.composite.resource.spec.advanced.tolerations }}
+                    tolerations: {{ .observed.composite.resource.spec.advanced.tolerations | toYaml | nindent 22 }}
+                    {{- end }}
+                    {{- if .observed.composite.resource.spec.advanced.customEnvVars }}
+                    customEnvVars: {{ .observed.composite.resource.spec.advanced.customEnvVars | toYaml | nindent 22 }}
+                    {{- end }}
+                  {{- end }}
+                  
+                  # Parent reference for child to know its parent
+                  parentRef:
+                    name: {{ $fullName }}
+                    uid: {{ .observed.composite.resource.metadata.uid }}
+                    gameType: {{ $gameType }}
+
+  # Step 2: Auto-ready when child resource is created
+  - step: auto-ready
+    functionRef:
+      name: function-auto-ready

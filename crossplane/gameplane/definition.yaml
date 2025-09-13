@@ -1,0 +1,166 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xgameservers.gameplane.kubelize.io
+  labels:
+    provider: kubelize
+    service: gameserver
+    type: parent
+spec:
+  group: gameplane.kubelize.io
+  names:
+    kind: XGameServer
+    plural: xgameservers
+  claimNames:
+    kind: GameServer
+    plural: gameservers
+  connectionSecretKeys:
+  - serverIP
+  - gamePort
+  - webPort
+  - serverEndpoint
+  - serverPassword
+  - adminPassword
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            description: GameServer specification that routes to game-specific child compositions
+            type: object
+            properties:
+              # Game type determines which child composition to spawn
+              gameType:
+                description: Type of game server (determines child composition)
+                type: string
+                enum: ["sdtd", "ce", "pw", "vh", "we", "ln"]
+              
+              # Server identification
+              serverName:
+                description: Display name for the game server
+                type: string
+                maxLength: 64
+              serverDescription:
+                description: Server description visible to players
+                type: string
+                maxLength: 256
+              
+              # Resource allocation
+              resources:
+                description: Resource allocation for the game server
+                type: object
+                properties:
+                  cpu:
+                    description: CPU allocation (e.g., "2", "4")
+                    type: string
+                  memory:
+                    description: Memory allocation (e.g., "4Gi", "8Gi")
+                    type: string
+                  storageSize:
+                    description: Persistent storage size
+                    type: string
+                  storageClass:
+                    description: Storage class for persistent volumes
+                    type: string
+              
+              # Network configuration
+              networking:
+                description: Network configuration
+                type: object
+                properties:
+                  serviceType:
+                    description: Kubernetes service type
+                    type: string
+                    enum: ["ClusterIP", "NodePort", "LoadBalancer"]
+                    default: "LoadBalancer"
+                  enableIngress:
+                    description: Create ingress for web admin
+                    type: boolean
+                    default: false
+                  ingressHost:
+                    description: Hostname for ingress
+                    type: string
+              
+              # Game-specific configuration (passed through to child)
+              gameConfig:
+                description: Game-specific configuration (schema varies by gameType)
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+                # This allows each game type to define its own configuration structure
+              
+              # Advanced configuration
+              advanced:
+                description: Advanced server configuration
+                type: object
+                properties:
+                  affinity:
+                    description: Pod affinity rules
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  tolerations:
+                    description: Pod tolerations
+                    type: array
+                    items:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                  customEnvVars:
+                    description: Custom environment variables
+                    type: object
+                    additionalProperties:
+                      type: string
+                      
+          status:
+            description: GameServer status (aggregated from child)
+            type: object
+            properties:
+              phase:
+                description: Current phase of the game server
+                type: string
+                enum: ["Pending", "Routing", "ChildCreating", "Installing", "Running", "Failed", "Terminating"]
+              childType:
+                description: Type of child composition being used
+                type: string
+              childName:
+                description: Name of the spawned child resource
+                type: string
+              serverIP:
+                description: External IP address of the game server
+                type: string
+              gamePort:
+                description: Game port
+                type: integer
+              webPort:
+                description: Web admin port (if applicable)
+                type: integer
+              serverEndpoint:
+                description: Full connection endpoint for players
+                type: string
+              lastUpdate:
+                description: Last status update timestamp
+                type: string
+                format: date-time
+        required:
+        - spec
+    additionalPrinterColumns:
+    - name: Game Type
+      type: string
+      jsonPath: .spec.gameType
+    - name: Server Name
+      type: string
+      jsonPath: .spec.serverName
+    - name: Child Type
+      type: string
+      jsonPath: .status.childType
+    - name: Phase
+      type: string
+      jsonPath: .status.phase
+    - name: Server IP
+      type: string
+      jsonPath: .status.serverIP
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp

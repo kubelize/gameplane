@@ -1,0 +1,463 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: sdtd-gameserver
+  labels:
+    provider: kubernetes
+    service: gameserver
+    game: sdtd
+    type: child
+spec:
+  compositeTypeRef:
+    apiVersion: gameplane.kubelize.io/v1alpha1
+    kind: XSDTDGameServer
+  
+  mode: Pipeline
+  pipeline:
+  
+  # Step 1: Generate SDTD-specific Kubernetes resources
+  - step: generate-sdtd-resources
+    functionRef:
+      name: function-go-templating
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          {{ $serverName := .observed.composite.resource.spec.serverName }}
+          {{ $serverDescription := .observed.composite.resource.spec.serverDescription | default "Seven Days to Die - Managed by Kubelize" }}
+          {{ $namespace := printf "%s-%s" .observed.composite.resource.metadata.name "gameserver" }}
+          {{ $fullName := .observed.composite.resource.metadata.name }}
+          
+          # Resource configuration with SDTD-optimized defaults
+          {{ $cpu := .observed.composite.resource.spec.resources.cpu | default "4" }}
+          {{ $memory := .observed.composite.resource.spec.resources.memory | default "8Gi" }}
+          {{ $storageSize := .observed.composite.resource.spec.resources.storageSize | default "50Gi" }}
+          {{ $serviceType := .observed.composite.resource.spec.networking.serviceType | default "LoadBalancer" }}
+          {{ $enableIngress := .observed.composite.resource.spec.networking.enableIngress | default true }}
+          
+          # SDTD game configuration with defaults
+          {{ $maxPlayers := .observed.composite.resource.spec.gameConfig.server.maxPlayers | default 8 }}
+          {{ $region := .observed.composite.resource.spec.gameConfig.server.region | default "NorthAmericaEast" }}
+          {{ $worldName := .observed.composite.resource.spec.gameConfig.world.worldName | default "Navezgane" }}
+          {{ $worldGenSeed := .observed.composite.resource.spec.gameConfig.world.worldGenSeed | default "Random" }}
+          {{ $worldGenSize := .observed.composite.resource.spec.gameConfig.world.worldGenSize | default 8192 }}
+          {{ $gameDifficulty := .observed.composite.resource.spec.gameConfig.gameplay.gameDifficulty | default 1 }}
+          {{ $dayNightLength := .observed.composite.resource.spec.gameConfig.gameplay.dayNightLength | default 60 }}
+          {{ $zombieSpawnMode := .observed.composite.resource.spec.gameConfig.gameplay.zombieSpawnMode | default "Walk" }}
+          {{ $bloodMoonFrequency := .observed.composite.resource.spec.gameConfig.gameplay.bloodMoonFrequency | default 7 }}
+          {{ $webControlEnabled := .observed.composite.resource.spec.gameConfig.admin.webControlEnabled | default true }}
+          {{ $webControlPort := .observed.composite.resource.spec.gameConfig.admin.webControlPort | default 8080 }}
+          
+          # Namespace for SDTD server
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-namespace
+            annotations:
+              crossplane.io/external-name: {{ $namespace }}
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-namespace
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: {{ $namespace }}
+                  labels:
+                    kubelize.io/gameserver: {{ $fullName }}
+                    kubelize.io/game-type: sdtd
+                    kubelize.io/parent: {{ .observed.composite.resource.spec.parentRef.name }}
+          
+          # SDTD-specific ConfigMap with detailed server configuration
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-sdtd-config
+            annotations:
+              crossplane.io/external-name: {{ $fullName }}-sdtd-config
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-sdtd-config
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: v1
+                kind: ConfigMap
+                metadata:
+                  name: {{ $fullName }}-sdtd-config
+                  namespace: {{ $namespace }}
+                  labels:
+                    kubelize.io/gameserver: {{ $fullName }}
+                    kubelize.io/game-type: sdtd
+                data:
+                  config-values.yaml: |
+                    # SDTD Server Configuration
+                    ServerName: {{ $serverName | quote }}
+                    ServerDescription: {{ $serverDescription | quote }}
+                    ServerMaxPlayerCount: {{ $maxPlayers }}
+                    ServerPort: 26900
+                    ServerVisibility: 2
+                    ServerDisabledNetworkProtocols: "SteamNetworking"
+                    Region: {{ $region | quote }}
+                    
+                    # Game settings
+                    GameMode: "GameModeSurvival"
+                    GameName: {{ $serverName | quote }}
+                    GameDifficulty: {{ $gameDifficulty }}
+                    DayNightLength: {{ $dayNightLength }}
+                    DayLightLength: {{ .observed.composite.resource.spec.gameConfig.gameplay.dayLightLength | default 18 }}
+                    
+                    # World settings
+                    GameWorld: {{ $worldName | quote }}
+                    WorldGenSeed: {{ $worldGenSeed | quote }}
+                    WorldGenSize: {{ $worldGenSize }}
+                    
+                    # Zombie settings
+                    ZombieSpawnMode: {{ $zombieSpawnMode | quote }}
+                    BloodMoonFrequency: {{ $bloodMoonFrequency }}
+                    BloodMoonRange: {{ .observed.composite.resource.spec.gameConfig.gameplay.bloodMoonRange | default 0 }}
+                    
+                    # Performance settings
+                    MaxSpawnedZombies: {{ .observed.composite.resource.spec.gameConfig.performance.maxSpawnedZombies | default 60 }}
+                    MaxSpawnedAnimals: {{ .observed.composite.resource.spec.gameConfig.performance.maxSpawnedAnimals | default 50 }}
+                    ServerMaxAllowedViewDistance: {{ .observed.composite.resource.spec.gameConfig.performance.serverMaxAllowedViewDistance | default 12 }}
+                    
+                    # PvP settings
+                    PlayerKillingMode: {{ .observed.composite.resource.spec.gameConfig.pvp.playerKillingMode | default 0 }}
+                    PlayerDamageMultiplier: {{ .observed.composite.resource.spec.gameConfig.pvp.playerDamageMultiplier | default 1.0 }}
+                    ZombieDamageMultiplier: {{ .observed.composite.resource.spec.gameConfig.pvp.zombieDamageMultiplier | default 1.0 }}
+                    BlockDamagePlayer: {{ .observed.composite.resource.spec.gameConfig.pvp.blockDamagePlayer | default 1.0 }}
+                    
+                    # Web control
+                    ControlPanelEnabled: {{ $webControlEnabled }}
+                    ControlPanelPort: {{ $webControlPort }}
+                    EnableMapRendering: {{ .observed.composite.resource.spec.gameConfig.admin.enableMapRendering | default true }}
+                    
+                    # Telnet settings
+                    TelnetEnabled: {{ .observed.composite.resource.spec.gameConfig.admin.telnetEnabled | default false }}
+                    TelnetPort: {{ .observed.composite.resource.spec.gameConfig.admin.telnetPort | default 8081 }}
+          
+          # Server password secret (auto-generated if not provided)
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-server-password
+            annotations:
+              crossplane.io/external-name: {{ $fullName }}-server-password
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-server-password
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: {{ $fullName }}-server-password
+                  namespace: {{ $namespace }}
+                  labels:
+                    kubelize.io/gameserver: {{ $fullName }}
+                    kubelize.io/game-type: sdtd
+                type: Opaque
+                data:
+                  ServerPassword: {{ if .observed.composite.resource.spec.gameConfig.server.serverPassword }}{{ .observed.composite.resource.spec.gameConfig.server.serverPassword | b64enc }}{{ else }}{{ randAlphaNum 16 | b64enc }}{{ end }}
+          
+          # Web control password secret (auto-generated if not provided)
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-web-password
+            annotations:
+              crossplane.io/external-name: {{ $fullName }}-web-password
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-web-password
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: {{ $fullName }}-web-password
+                  namespace: {{ $namespace }}
+                  labels:
+                    kubelize.io/gameserver: {{ $fullName }}
+                    kubelize.io/game-type: sdtd
+                type: Opaque
+                data:
+                  WebControlPassword: {{ if .observed.composite.resource.spec.gameConfig.admin.webControlPassword }}{{ .observed.composite.resource.spec.gameConfig.admin.webControlPassword | b64enc }}{{ else }}{{ randAlphaNum 20 | b64enc }}{{ end }}
+          
+          # Persistent storage for SDTD save data
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-storage
+            annotations:
+              crossplane.io/external-name: {{ $fullName }}-storage
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-storage
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: v1
+                kind: PersistentVolumeClaim
+                metadata:
+                  name: {{ $fullName }}-storage
+                  namespace: {{ $namespace }}
+                  labels:
+                    kubelize.io/gameserver: {{ $fullName }}
+                    kubelize.io/game-type: sdtd
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: {{ $storageSize }}
+                  {{- if .observed.composite.resource.spec.resources.storageClass }}
+                  storageClassName: {{ .observed.composite.resource.spec.resources.storageClass }}
+                  {{- end }}
+          
+          # SDTD Server Deployment
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-deployment
+            annotations:
+              crossplane.io/external-name: {{ $fullName }}-deployment
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-deployment
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: apps/v1
+                kind: Deployment
+                metadata:
+                  name: {{ $fullName }}-deployment
+                  namespace: {{ $namespace }}
+                  labels:
+                    kubelize.io/gameserver: {{ $fullName }}
+                    kubelize.io/game-type: sdtd
+                spec:
+                  replicas: 1
+                  strategy:
+                    type: Recreate  # SDTD can't have multiple instances
+                  selector:
+                    matchLabels:
+                      kubelize.io/gameserver: {{ $fullName }}
+                  template:
+                    metadata:
+                      labels:
+                        kubelize.io/gameserver: {{ $fullName }}
+                        kubelize.io/game-type: sdtd
+                    spec:
+                      {{- if .observed.composite.resource.spec.advanced.affinity }}
+                      affinity: {{ .observed.composite.resource.spec.advanced.affinity | toYaml | nindent 24 }}
+                      {{- end }}
+                      {{- if .observed.composite.resource.spec.advanced.tolerations }}
+                      tolerations: {{ .observed.composite.resource.spec.advanced.tolerations | toYaml | nindent 24 }}
+                      {{- end }}
+                      containers:
+                      - name: sdtd-server
+                        image: kubelize/game-servers:0.2.9-sdtd
+                        imagePullPolicy: IfNotPresent
+                        resources:
+                          requests:
+                            cpu: {{ $cpu }}
+                            memory: {{ $memory }}
+                          limits:
+                            cpu: {{ $cpu }}
+                            memory: {{ $memory }}
+                        ports:
+                        - name: sdtd-game-tcp
+                          containerPort: 26900
+                          protocol: TCP
+                        - name: sdtd-game-udp
+                          containerPort: 26900
+                          protocol: UDP
+                        - name: sdtd-alt-tcp
+                          containerPort: 26901
+                          protocol: TCP
+                        - name: sdtd-alt-udp
+                          containerPort: 26901
+                          protocol: UDP
+                        {{- if $webControlEnabled }}
+                        - name: sdtd-web
+                          containerPort: {{ $webControlPort }}
+                          protocol: TCP
+                        {{- end }}
+                        volumeMounts:
+                        - name: sdtd-config
+                          mountPath: /home/kubelize/steam/config-data/config-values.yaml
+                          subPath: config-values.yaml
+                        - name: server-password
+                          mountPath: /home/kubelize/steam/config-data/ServerPassword
+                          subPath: ServerPassword
+                        - name: web-password
+                          mountPath: /home/kubelize/steam/config-data/WebControlPassword
+                          subPath: WebControlPassword
+                        - name: game-data
+                          mountPath: /home/kubelize/server
+                        env:
+                        - name: GAME_TYPE
+                          value: "sdtd"
+                        - name: SERVER_NAME
+                          value: {{ $serverName | quote }}
+                        - name: MAX_PLAYERS
+                          value: {{ $maxPlayers | quote }}
+                        - name: WORLD_NAME
+                          value: {{ $worldName | quote }}
+                        - name: GAME_DIFFICULTY
+                          value: {{ $gameDifficulty | quote }}
+                        {{- if .observed.composite.resource.spec.advanced.customEnvVars }}
+                        {{- range $key, $value := .observed.composite.resource.spec.advanced.customEnvVars }}
+                        - name: {{ $key }}
+                          value: {{ $value | quote }}
+                        {{- end }}
+                        {{- end }}
+                        livenessProbe:
+                          tcpSocket:
+                            port: 26900
+                          initialDelaySeconds: 300  # SDTD takes time to start
+                          periodSeconds: 30
+                          timeoutSeconds: 10
+                          failureThreshold: 3
+                        readinessProbe:
+                          tcpSocket:
+                            port: 26900
+                          initialDelaySeconds: 180
+                          periodSeconds: 15
+                          timeoutSeconds: 5
+                          failureThreshold: 2
+                      volumes:
+                      - name: sdtd-config
+                        configMap:
+                          name: {{ $fullName }}-sdtd-config
+                      - name: server-password
+                        secret:
+                          secretName: {{ $fullName }}-server-password
+                      - name: web-password
+                        secret:
+                          secretName: {{ $fullName }}-web-password
+                      - name: game-data
+                        persistentVolumeClaim:
+                          claimName: {{ $fullName }}-storage
+          
+          # SDTD Game Service (TCP + UDP for multiple ports)
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-game-service
+            annotations:
+              crossplane.io/external-name: {{ $fullName }}-game-service
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-game-service
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  name: {{ $fullName }}-game-service
+                  namespace: {{ $namespace }}
+                  labels:
+                    kubelize.io/gameserver: {{ $fullName }}
+                    kubelize.io/game-type: sdtd
+                    kubelize.io/service-type: game
+                spec:
+                  type: {{ $serviceType }}
+                  selector:
+                    kubelize.io/gameserver: {{ $fullName }}
+                  ports:
+                  - name: game-tcp
+                    port: 26900
+                    targetPort: 26900
+                    protocol: TCP
+                  - name: game-udp
+                    port: 26900
+                    targetPort: 26900
+                    protocol: UDP
+                  - name: game-alt-tcp
+                    port: 26901
+                    targetPort: 26901
+                    protocol: TCP
+                  - name: game-alt-udp
+                    port: 26901
+                    targetPort: 26901
+                    protocol: UDP
+          
+          {{- if $webControlEnabled }}
+          # SDTD Web Control Service
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-web-service
+            annotations:
+              crossplane.io/external-name: {{ $fullName }}-web-service
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-web-service
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: v1
+                kind: Service
+                metadata:
+                  name: {{ $fullName }}-web-service
+                  namespace: {{ $namespace }}
+                  labels:
+                    kubelize.io/gameserver: {{ $fullName }}
+                    kubelize.io/game-type: sdtd
+                    kubelize.io/service-type: web
+                spec:
+                  type: ClusterIP
+                  selector:
+                    kubelize.io/gameserver: {{ $fullName }}
+                  ports:
+                  - name: web-control
+                    port: {{ $webControlPort }}
+                    targetPort: {{ $webControlPort }}
+                    protocol: TCP
+          {{- end }}
+          
+          {{- if and $webControlEnabled $enableIngress .observed.composite.resource.spec.networking.ingressHost }}
+          # SDTD Web Control Ingress
+          ---
+          apiVersion: kubernetes.crossplane.io/v1alpha1
+          kind: Object
+          metadata:
+            name: {{ $fullName }}-ingress
+            annotations:
+              crossplane.io/external-name: {{ $fullName }}-ingress
+              gotemplating.fn.crossplane.io/composition-resource-name: {{ $fullName }}-ingress
+          spec:
+            forProvider:
+              manifest:
+                apiVersion: networking.k8s.io/v1
+                kind: Ingress
+                metadata:
+                  name: {{ $fullName }}-ingress
+                  namespace: {{ $namespace }}
+                  labels:
+                    kubelize.io/gameserver: {{ $fullName }}
+                    kubelize.io/game-type: sdtd
+                  annotations:
+                    nginx.ingress.kubernetes.io/auth-type: basic
+                    nginx.ingress.kubernetes.io/auth-secret: {{ $fullName }}-web-password
+                    nginx.ingress.kubernetes.io/auth-realm: "SDTD Web Control Panel"
+                spec:
+                  rules:
+                  - host: {{ .observed.composite.resource.spec.networking.ingressHost }}
+                    http:
+                      paths:
+                      - path: /
+                        pathType: Prefix
+                        backend:
+                          service:
+                            name: {{ $fullName }}-web-service
+                            port:
+                              number: {{ $webControlPort }}
+                  {{- end }}
+
+  # Step 2: Auto-ready when all SDTD resources are ready
+  - step: auto-ready
+    functionRef:
+      name: function-auto-ready

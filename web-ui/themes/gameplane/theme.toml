@@ -1,0 +1,12 @@
+name = "GamePlane"
+license = "MIT"
+licenselink = "https://github.com/kubelize/gameplane/blob/main/LICENSE"
+description = "A modern theme for game server management"
+homepage = "https://github.com/kubelize/gameplane"
+tags = ["gaming", "management", "dashboard", "kubernetes"]
+features = ["responsive", "forms", "api-integration"]
+min_version = "0.100.0"
+
+[author]
+  name = "Kubelize"
+  homepage = "https://kubelize.io"

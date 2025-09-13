@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Create New Server - GamePlane - Game Server Management</title>
+    <meta name="description" content="Create a new game server">
+    
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <link rel="stylesheet" href="/css/gameplane.css">
+</head>
+<body>
+    
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="bi bi-controller"></i> GamePlane
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Dashboard</a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="/servers/">Servers</a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="/create/">Create</a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="/docs/">Documentation</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    
+    <main class="flex-grow-1">
+        
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Create New Game Server
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="gameserver-form">
+                        
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="section-title">Basic Information</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="serverName" class="form-label">Server Name *</label>
+                                <input type="text" class="form-control" name="serverName" id="serverName" 
+                                       placeholder="my-game-server" pattern="[a-z0-9\-]+" required>
+                                <div class="form-text">Lowercase letters, numbers, and hyphens only</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="displayName" class="form-label">Display Name</label>
+                                <input type="text" class="form-control" name="displayName" id="displayName" 
+                                       placeholder="My Awesome Game Server">
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="gameType" class="form-label">Game Type *</label>
+                                <select class="form-select" name="gameType" id="gameType" required>
+                                    <option value="">Select a game type...</option>
+                                    <option value="sdtd">7 Days to Die</option>
+                                    <option value="vh">Valheim</option>
+                                    <option value="pw">Palworld</option>
+                                    <option value="ce">Conan Exiles</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="namespace" class="form-label">Namespace</label>
+                                <select class="form-select" name="namespace" id="namespace">
+                                    <option value="default">default</option>
+                                    <option value="gameservers">gameservers</option>
+                                    <option value="production">production</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" name="description" id="description" rows="3" 
+                                      placeholder="Brief description of your game server..."></textarea>
+                        </div>
+
+                        
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="section-title">Resource Configuration</h5>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="cpu" class="form-label">CPU Cores</label>
+                                <select class="form-select" name="cpu" id="cpu">
+                                    <option value="1">1 Core</option>
+                                    <option value="2" selected>2 Cores</option>
+                                    <option value="4">4 Cores</option>
+                                    <option value="8">8 Cores</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="memory" class="form-label">Memory</label>
+                                <select class="form-select" name="memory" id="memory">
+                                    <option value="2Gi">2 GB</option>
+                                    <option value="4Gi" selected>4 GB</option>
+                                    <option value="8Gi">8 GB</option>
+                                    <option value="16Gi">16 GB</option>
+                                    <option value="32Gi">32 GB</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="storage" class="form-label">Storage</label>
+                                <select class="form-select" name="storage" id="storage">
+                                    <option value="10Gi">10 GB</option>
+                                    <option value="20Gi" selected>20 GB</option>
+                                    <option value="50Gi">50 GB</option>
+                                    <option value="100Gi">100 GB</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="section-title">Network Configuration</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="serviceType" class="form-label">Service Type</label>
+                                <select class="form-select" name="serviceType" id="serviceType">
+                                    <option value="LoadBalancer" selected>Load Balancer</option>
+                                    <option value="NodePort">Node Port</option>
+                                    <option value="ClusterIP">Cluster IP</option>
+                                </select>
+                                <div class="form-text">Load Balancer provides external access</div>
+                            </div>
+                        </div>
+
+                        
+                        <div id="game-specific-config" class="mb-4">
+                            
+                            <div id="sdtd-config" class="game-config" style="display: none;">
+                                <h5 class="section-title">7 Days to Die Configuration</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="sdtd-world-name" class="form-label">World Name</label>
+                                        <input type="text" class="form-control" name="worldName" 
+                                               placeholder="Navezgane" value="Navezgane">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="sdtd-difficulty" class="form-label">Difficulty</label>
+                                        <select class="form-select" name="difficulty">
+                                            <option value="0">Scavenger</option>
+                                            <option value="1" selected>Adventurer</option>
+                                            <option value="2">Nomad</option>
+                                            <option value="3">Warrior</option>
+                                            <option value="4">Survivalist</option>
+                                            <option value="5">Insane</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <label for="sdtd-max-players" class="form-label">Max Players</label>
+                                        <input type="number" class="form-control" name="maxPlayers" 
+                                               min="1" max="32" value="8">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="sdtd-server-password" class="form-label">Server Password</label>
+                                        <input type="password" class="form-control" name="serverPassword" 
+                                               placeholder="Leave empty for public server">
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div id="vh-config" class="game-config" style="display: none;">
+                                <h5 class="section-title">Valheim Configuration</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="valheim-world-name" class="form-label">World Name</label>
+                                        <input type="text" class="form-control" name="worldName" 
+                                               placeholder="Dedicated" value="Dedicated">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="valheim-server-password" class="form-label">Server Password *</label>
+                                        <input type="password" class="form-control" name="serverPassword" 
+                                               placeholder="Required for Valheim">
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div id="pw-config" class="game-config" style="display: none;">
+                                <h5 class="section-title">Palworld Configuration</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="palworld-max-players" class="form-label">Max Players</label>
+                                        <input type="number" class="form-control" name="maxPlayers" 
+                                               min="1" max="32" value="32">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="palworld-server-password" class="form-label">Server Password</label>
+                                        <input type="password" class="form-control" name="serverPassword" 
+                                               placeholder="Optional">
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div id="ce-config" class="game-config" style="display: none;">
+                                <h5 class="section-title">Conan Exiles Configuration</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="conan-max-players" class="form-label">Max Players</label>
+                                        <input type="number" class="form-control" name="maxPlayers" 
+                                               min="1" max="40" value="10">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="conan-pvp-enabled" class="form-label">PVP Mode</label>
+                                        <select class="form-select" name="pvpEnabled">
+                                            <option value="false" selected>PVE</option>
+                                            <option value="true">PVP</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+                        <div class="mb-4">
+                            <div class="card bg-light">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <button class="btn btn-link text-decoration-none p-0" type="button" 
+                                                data-bs-toggle="collapse" data-bs-target="#advanced-options">
+                                            <i class="fas fa-chevron-down me-2"></i>
+                                            Advanced Options
+                                        </button>
+                                    </h6>
+                                </div>
+                                <div class="collapse" id="advanced-options">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="autoRestart" 
+                                                           id="autoRestart" checked>
+                                                    <label class="form-check-label" for="autoRestart">
+                                                        Auto-restart on crash
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="enableBackups" 
+                                                           id="enableBackups" checked>
+                                                    <label class="form-check-label" for="enableBackups">
+                                                        Enable automatic backups
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="/" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-rocket me-2"></i>Create Server
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    </main>
+
+    
+    <footer class="bg-light py-4 mt-5">
+        <div class="container text-center">
+            <p class="text-muted mb-0">
+                &copy; 2025 Kubelize - 
+                Powered by <a href="https://crossplane.io" target="_blank">Crossplane</a> & 
+                <a href="https://kubernetes.io" target="_blank">Kubernetes</a>
+            </p>
+        </div>
+    </footer>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="/js/gameplane.js"></script>
+</body>
+</html>

@@ -1,0 +1,355 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xsdtdgameservers.gameplane.kubelize.io
+  labels:
+    provider: kubelize
+    service: gameserver
+    game: sdtd
+    type: child
+spec:
+  group: gameplane.kubelize.io
+  names:
+    kind: XSDTDGameServer
+    plural: xsdtdgameservers
+  connectionSecretKeys:
+  - serverIP
+  - gamePort
+  - webPort
+  - serverEndpoint
+  - serverPassword
+  - webControlPassword
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            description: Seven Days to Die specific game server configuration
+            type: object
+            properties:
+              # Inherited from parent
+              serverName:
+                description: Display name for the SDTD server
+                type: string
+                maxLength: 64
+              serverDescription:
+                description: Server description visible to players
+                type: string
+                maxLength: 256
+              
+              # Resource allocation (with SDTD-optimized defaults)
+              resources:
+                description: Resource allocation for SDTD server
+                type: object
+                properties:
+                  cpu:
+                    description: CPU allocation
+                    type: string
+                    default: "4"  # SDTD needs more CPU
+                  memory:
+                    description: Memory allocation
+                    type: string
+                    default: "8Gi"  # SDTD is memory intensive
+                  storageSize:
+                    description: Storage size for save data
+                    type: string
+                    default: "50Gi"  # SDTD worlds can be large
+                  storageClass:
+                    description: Storage class
+                    type: string
+              
+              # Network configuration
+              networking:
+                description: Network configuration for SDTD
+                type: object
+                properties:
+                  serviceType:
+                    description: Service type
+                    type: string
+                    default: "LoadBalancer"
+                  enableIngress:
+                    description: Enable web admin ingress
+                    type: boolean
+                    default: true  # SDTD web admin is very useful
+                  ingressHost:
+                    description: Ingress hostname
+                    type: string
+              
+              # SDTD-specific game configuration
+              gameConfig:
+                description: Seven Days to Die specific configuration
+                type: object
+                properties:
+                  # Server settings
+                  server:
+                    description: Basic server settings
+                    type: object
+                    properties:
+                      maxPlayers:
+                        description: Maximum concurrent players (1-64)
+                        type: integer
+                        minimum: 1
+                        maximum: 64
+                        default: 8
+                      serverPassword:
+                        description: Server password (auto-generated if empty)
+                        type: string
+                      adminPassword:
+                        description: Admin password (auto-generated if empty)
+                        type: string
+                      region:
+                        description: Server region
+                        type: string
+                        enum: ["NorthAmericaEast", "NorthAmericaWest", "Europe", "Asia", "Oceania"]
+                        default: "NorthAmericaEast"
+                  
+                  # World settings
+                  world:
+                    description: World generation and settings
+                    type: object
+                    properties:
+                      worldName:
+                        description: World name/type
+                        type: string
+                        enum: ["Navezgane", "Random Gen", "PREGEN01", "PREGEN02", "PREGEN03", "PREGEN06", "PREGEN08", "PREGEN10"]
+                        default: "Navezgane"
+                      worldGenSeed:
+                        description: World generation seed
+                        type: string
+                        default: "Random"
+                      worldGenSize:
+                        description: Generated world size (for Random Gen)
+                        type: integer
+                        enum: [6144, 8192, 10240]
+                        default: 8192
+                  
+                  # Gameplay settings
+                  gameplay:
+                    description: Core gameplay settings
+                    type: object
+                    properties:
+                      gameDifficulty:
+                        description: Game difficulty (0=Scavenger to 5=Insane)
+                        type: integer
+                        minimum: 0
+                        maximum: 5
+                        default: 1
+                      dayNightLength:
+                        description: Real minutes for 24h game time
+                        type: integer
+                        minimum: 10
+                        maximum: 120
+                        default: 60
+                      dayLightLength:
+                        description: Hours of daylight (9-21)
+                        type: integer
+                        minimum: 9
+                        maximum: 21
+                        default: 18
+                      zombieSpawnMode:
+                        description: How zombies spawn during day
+                        type: string
+                        enum: ["Walk", "Jog", "Run", "Sprint", "Nightmare"]
+                        default: "Walk"
+                      bloodMoonFrequency:
+                        description: Days between blood moons (0=disabled)
+                        type: integer
+                        minimum: 0
+                        maximum: 60
+                        default: 7
+                      bloodMoonRange:
+                        description: Random range for blood moon timing
+                        type: integer
+                        minimum: 0
+                        maximum: 5
+                        default: 0
+                  
+                  # Performance settings
+                  performance:
+                    description: Server performance tuning
+                    type: object
+                    properties:
+                      maxSpawnedZombies:
+                        description: Maximum spawned zombies
+                        type: integer
+                        minimum: 8
+                        maximum: 256
+                        default: 60
+                      maxSpawnedAnimals:
+                        description: Maximum spawned animals
+                        type: integer
+                        minimum: 1
+                        maximum: 50
+                        default: 50
+                      serverMaxAllowedViewDistance:
+                        description: Max view distance (impacts performance)
+                        type: integer
+                        minimum: 6
+                        maximum: 12
+                        default: 12
+                      maxChunkAge:
+                        description: Max chunk age in game time
+                        type: integer
+                        default: -1
+                  
+                  # PvP settings
+                  pvp:
+                    description: Player vs Player configuration
+                    type: object
+                    properties:
+                      playerKillingMode:
+                        description: PvP mode (0=None, 1=Allies, 2=Strangers, 3=Everyone)
+                        type: integer
+                        minimum: 0
+                        maximum: 3
+                        default: 0
+                      playerDamageMultiplier:
+                        description: Player damage multiplier
+                        type: number
+                        minimum: 0.1
+                        maximum: 10.0
+                        default: 1.0
+                      zombieDamageMultiplier:
+                        description: Zombie damage multiplier
+                        type: number
+                        minimum: 0.1
+                        maximum: 10.0
+                        default: 1.0
+                      blockDamagePlayer:
+                        description: Block damage by players multiplier
+                        type: number
+                        minimum: 0.1
+                        maximum: 10.0
+                        default: 1.0
+                  
+                  # Administrative features
+                  admin:
+                    description: Administrative and web control settings
+                    type: object
+                    properties:
+                      webControlEnabled:
+                        description: Enable web control panel
+                        type: boolean
+                        default: true
+                      webControlPort:
+                        description: Web control panel port
+                        type: integer
+                        minimum: 1024
+                        maximum: 65535
+                        default: 8080
+                      webControlPassword:
+                        description: Web control password (auto-generated if empty)
+                        type: string
+                      enableMapRendering:
+                        description: Enable live map in web interface
+                        type: boolean
+                        default: true
+                      telnetEnabled:
+                        description: Enable telnet console access
+                        type: boolean
+                        default: false
+                      telnetPort:
+                        description: Telnet port
+                        type: integer
+                        minimum: 1024
+                        maximum: 65535
+                        default: 8081
+              
+              # Advanced configuration
+              advanced:
+                description: Advanced configuration options
+                type: object
+                properties:
+                  affinity:
+                    description: Pod affinity rules
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  tolerations:
+                    description: Pod tolerations
+                    type: array
+                    items:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                  customEnvVars:
+                    description: Custom environment variables
+                    type: object
+                    additionalProperties:
+                      type: string
+              
+              # Parent reference
+              parentRef:
+                description: Reference to parent GameServer
+                type: object
+                properties:
+                  name:
+                    type: string
+                  uid:
+                    type: string
+                  gameType:
+                    type: string
+                    
+          status:
+            description: SDTD GameServer status
+            type: object
+            properties:
+              phase:
+                description: Current phase
+                type: string
+                enum: ["Pending", "Installing", "ConfiguringMods", "StartingServer", "Running", "Failed", "Terminating"]
+              serverIP:
+                type: string
+              gamePort:
+                type: integer
+                default: 26900
+              webPort:
+                type: integer
+                default: 8080
+              serverEndpoint:
+                type: string
+              worldInfo:
+                description: World-specific information
+                type: object
+                properties:
+                  worldName:
+                    type: string
+                  worldSeed:
+                    type: string
+                  worldSize:
+                    type: integer
+                  dayCount:
+                    type: integer
+              playerStats:
+                description: Player statistics
+                type: object
+                properties:
+                  playersOnline:
+                    type: integer
+                  totalPlayers:
+                    type: integer
+                  maxPlayersReached:
+                    type: integer
+        required:
+        - spec
+    additionalPrinterColumns:
+    - name: Server Name
+      type: string
+      jsonPath: .spec.serverName
+    - name: Max Players
+      type: integer
+      jsonPath: .spec.common.maxPlayers
+    - name: Difficulty
+      type: integer
+      jsonPath: .spec.gameConfig.gameplay.gameDifficulty
+    - name: Phase
+      type: string
+      jsonPath: .status.phase
+    - name: Players Online
+      type: integer
+      jsonPath: .status.playerStats.playersOnline
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp

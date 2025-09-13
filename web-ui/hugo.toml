@@ -1,0 +1,93 @@
+baseURL = "http://localhost:1313"
+languageCode = "en-us"
+title = "GamePlane - Game Server Management"
+theme = "gameplane"
+
+# Hugo settings
+enableRobotsTXT = true
+enableGitInfo = false
+enableEmoji = true
+
+[params]
+  description = "Self-service game server management platform powered by Crossplane and Kubernetes"
+  version = "0.1.0"
+  author = "Kubelize"
+  
+  # API configuration
+  [params.api]
+    baseURL = "/api"
+    timeout = 30
+  
+  # Feature flags
+  [params.features]
+    enableMetrics = true
+    enableBackups = true
+    enableAutoRestart = true
+  
+  # Supported games
+  [params.games]
+    [params.games.sdtd]
+      name = "7 Days to Die"
+      description = "Survival horror with tower defense elements"
+      defaultPorts = [26900, 26901, 26902]
+      minResources = { cpu = "1", memory = "2Gi", storage = "10Gi" }
+      recommendedResources = { cpu = "2", memory = "4Gi", storage = "20Gi" }
+    
+    [params.games.valheim]
+      name = "Valheim"
+      description = "Viking-themed survival and exploration"
+      defaultPorts = [2456, 2457, 2458]
+      minResources = { cpu = "1", memory = "2Gi", storage = "5Gi" }
+      recommendedResources = { cpu = "2", memory = "4Gi", storage = "10Gi" }
+    
+    [params.games.palworld]
+      name = "Palworld"
+      description = "Creature collection and survival"
+      defaultPorts = [8211]
+      minResources = { cpu = "2", memory = "4Gi", storage = "10Gi" }
+      recommendedResources = { cpu = "4", memory = "8Gi", storage = "20Gi" }
+    
+    [params.games.conan_exiles]
+      name = "Conan Exiles"
+      description = "Open-world survival in the Conan universe"
+      defaultPorts = [7777, 27015]
+      minResources = { cpu = "2", memory = "4Gi", storage = "20Gi" }
+      recommendedResources = { cpu = "4", memory = "8Gi", storage = "50Gi" }
+
+[menu]
+  [[menu.main]]
+    identifier = "dashboard"
+    name = "Dashboard"
+    url = "/"
+    weight = 10
+    pre = '<i class="fas fa-tachometer-alt me-2"></i>'
+    
+  [[menu.main]]
+    identifier = "servers"
+    name = "Servers"
+    url = "/servers/"
+    weight = 20
+    pre = '<i class="fas fa-server me-2"></i>'
+    
+  [[menu.main]]
+    identifier = "create"
+    name = "Create"
+    url = "/create/"
+    weight = 30
+    pre = '<i class="fas fa-plus me-2"></i>'
+    
+  [[menu.main]]
+    identifier = "docs"
+    name = "Documentation"
+    url = "/docs/"
+    weight = 40
+    pre = '<i class="fas fa-book me-2"></i>'
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    style = "github"
+    lineNos = true
+    lineNumbersInTable = false

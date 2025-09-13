@@ -1,0 +1,100 @@
+# Seven Days to Die Game Server using Parent-Child Spawning Architecture
+# Parent GameServer spawns SDTD-specific child composition
+apiVersion: gameplane.kubelize.io/v1alpha1
+kind: GameServer
+metadata:
+  name: hardcore-zombie-apocalypse
+  namespace: test-gameserver
+spec:
+  gameType: sdtd  # This triggers spawning of XSDTDGameServer child
+  serverName: "Hardcore Zombie Apocalypse"
+  serverDescription: "24/7 Hardcore PvPvE server with extreme zombie configurations"
+  
+  # Resource configuration (passed to child)
+  resources:
+    cpu: "4"
+    memory: "8Gi"
+    storageSize: "40Gi"
+    storageClass: "proxmox"
+  
+  # Network configuration (passed to child)
+  networking:
+    serviceType: LoadBalancer
+    enableIngress: true
+    ingressHost: "sdtd-hardcore.yourdomain.com"
+  
+  # SDTD-specific game configuration (passed to SDTD child composition)
+  gameConfig:
+    # Server settings
+    server:
+      maxPlayers: 16
+      region: NorthAmericaEast
+      # Passwords will be auto-generated if not provided
+      # serverPassword: "optional-custom-password"
+      # adminPassword: "optional-admin-password"
+    
+    # World configuration
+    world:
+      worldName: "Random Gen"  # Use procedurally generated world
+      worldGenSeed: "HardcoreApocalypse2024"
+      worldGenSize: 10240  # Large 10km x 10km world
+    
+    # Gameplay settings
+    gameplay:
+      gameDifficulty: 4      # Survivalist difficulty
+      dayNightLength: 120    # 2-hour real-time days
+      dayLightLength: 12     # Only 12 hours of daylight
+      zombieSpawnMode: "Run" # Fast zombies during day
+      bloodMoonFrequency: 5  # Blood moon every 5 days
+      bloodMoonRange: 1      # Random +/- 1 day
+    
+    # Performance settings
+    performance:
+      maxSpawnedZombies: 128     # Lots of zombies
+      maxSpawnedAnimals: 30      # Fewer animals for performance
+      serverMaxAllowedViewDistance: 10  # Reduced for performance
+      maxChunkAge: 3             # Faster chunk cleanup
+    
+    # PvP configuration
+    pvp:
+      playerKillingMode: 3       # Kill everyone (full PvP)
+      playerDamageMultiplier: 1.5  # Higher player damage
+      zombieDamageMultiplier: 2.5  # Much higher zombie damage
+      blockDamagePlayer: 2.0     # Higher block damage
+    
+    # Administrative settings
+    admin:
+      webControlEnabled: true
+      webControlPort: 8080
+      # webControlPassword: "custom-web-password"  # Will auto-generate
+      enableMapRendering: true
+      telnetEnabled: true
+      telnetPort: 8081
+  
+  # Advanced configuration (passed to child)
+  # advanced:
+  #   Schedule on high-performance gaming nodes
+  #   affinity:
+  #     nodeAffinity:
+  #       requiredDuringSchedulingIgnoredDuringExecution:
+  #         nodeSelectorTerms:
+  #         - matchExpressions:
+  #           - key: "node-type"
+  #             operator: In
+  #             values: ["gaming-optimized"]
+  #           - key: "kubelize.io/high-performance"
+  #             operator: In
+  #             values: ["true"]
+    
+    # Tolerate gaming-specific taints
+    # tolerations:
+    # - key: "dedicated"
+    #   operator: "Equal"
+    #   value: "gaming"
+    #   effect: "NoSchedule"
+    
+    # Custom environment variables
+    customEnvVars:
+      HARDCORE_MODE: "true"
+      ZOMBIE_BOOST: "enabled"
+      PVP_LOGGING: "verbose"
