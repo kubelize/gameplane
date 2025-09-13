@@ -300,6 +300,11 @@ function populateServersTable(servers) {
     tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
 }
 
+// Alias for backward compatibility with inline scripts
+function loadServers() {
+    loadServersTable();
+}
+
 // Server management functions
 async function restartServer(name, namespace = 'default') {
     if (!confirm(`Are you sure you want to restart ${name}?`)) return;
@@ -498,23 +503,10 @@ function updateGameSpecificFields(gameType) {
     }
 }
 
-// Debug function
-function debugPage() {
-    console.log('Debugging page elements:');
-    console.log('- gameserver-form:', document.getElementById('gameserver-form'));
-    console.log('- submit button:', document.querySelector('button[type="submit"]'));
-    console.log('- all forms:', document.querySelectorAll('form'));
-    console.log('- all buttons:', document.querySelectorAll('button'));
-}
-
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded fired');
-    debugPage();
-    
     // Update dashboard stats on homepage
     if (document.getElementById('running-servers')) {
-        console.log('Found dashboard elements, updating stats');
         updateDashboardStats();
         // Refresh stats every 30 seconds
         setInterval(updateDashboardStats, 30000);
@@ -522,18 +514,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load servers table on servers page
     if (document.getElementById('servers-tbody')) {
-        console.log('Found servers table, loading data');
         loadServersTable();
         // Refresh servers every 30 seconds
         setInterval(() => loadServersTable(), 30000);
     }
 
-    // Form submission handling
+    // Form submission handling - only on create page
     const gameServerForm = document.getElementById('gameserver-form');
     if (gameServerForm) {
-        console.log('Found gameserver form, attaching event listener');
         gameServerForm.addEventListener('submit', async function(e) {
-            console.log('Form submit event triggered');
             e.preventDefault();
             
             const submitButton = this.querySelector('button[type="submit"]');
@@ -549,36 +538,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitButton.innerHTML = originalText;
             }
         });
-    } else {
-        console.log('gameserver-form not found');
-    }
 
-    // Game type change handler
-    const gameTypeSelect = document.querySelector('select[name="gameType"]');
-    if (gameTypeSelect) {
-        console.log('Found game type select, attaching change handler');
-        gameTypeSelect.addEventListener('change', function() {
-            console.log('Game type changed to:', this.value);
-            updateGameSpecificFields(this.value);
-        });
-        
-        // Initialize with current selection
-        if (gameTypeSelect.value) {
-            console.log('Initializing with game type:', gameTypeSelect.value);
-            updateGameSpecificFields(gameTypeSelect.value);
+        // Game type change handler - only if form exists
+        const gameTypeSelect = document.querySelector('select[name="gameType"]');
+        if (gameTypeSelect) {
+            gameTypeSelect.addEventListener('change', function() {
+                updateGameSpecificFields(this.value);
+            });
+            
+            // Initialize with current selection
+            if (gameTypeSelect.value) {
+                updateGameSpecificFields(gameTypeSelect.value);
+            }
         }
-    } else {
-        console.log('gameType select not found');
-    }
-
-    // Debug: Add direct button click handler
-    const submitButton = document.querySelector('button[type="submit"]');
-    if (submitButton) {
-        console.log('Found submit button, attaching direct click handler');
-        submitButton.addEventListener('click', function(e) {
-            console.log('Submit button clicked directly');
-        });
-    } else {
-        console.log('Submit button not found');
     }
 });
