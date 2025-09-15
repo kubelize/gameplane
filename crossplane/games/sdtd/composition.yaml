@@ -27,7 +27,7 @@ spec:
         template: |
           {{ $serverName := .observed.composite.resource.spec.serverName }}
           {{ $serverDescription := .observed.composite.resource.spec.serverDescription | default "Seven Days to Die - Managed by Kubelize" }}
-          {{ $namespace := printf "%s-%s" .observed.composite.resource.metadata.name "gameserver" }}
+          {{ $namespace := .observed.composite.resource.metadata.name }}
           {{ $fullName := .observed.composite.resource.metadata.name }}
           
           # Resource configuration with SDTD-optimized defaults
@@ -256,6 +256,13 @@ spec:
                       {{- if .observed.composite.resource.spec.advanced.tolerations }}
                       tolerations: {{ .observed.composite.resource.spec.advanced.tolerations | toYaml | nindent 24 }}
                       {{- end }}
+                      initContainers:
+                        - name: init-permissions
+                          image: busybox
+                          command: ["sh", "-c", "mkdir -p /home/kubelize/server && chown -R 1000:1000 /home/kubelize/server"]
+                          volumeMounts:
+                            - name: game-data
+                              mountPath: "/home/kubelize/server"
                       containers:
                       - name: sdtd-server
                         image: kubelize/game-servers:0.2.9-sdtd

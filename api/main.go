@@ -109,6 +109,7 @@ func (s *Server) setupRoutes() {
 			gameservers.PUT("/:namespace/:name", s.updateGameServer)
 			gameservers.DELETE("/:namespace/:name", s.deleteGameServer)
 			gameservers.GET("/:namespace/:name/logs", s.getGameServerLogs)
+			gameservers.GET("/:namespace/:name/metrics", s.getGameServerMetrics)
 			gameservers.POST("/:namespace/:name/restart", s.restartGameServer)
 		}
 

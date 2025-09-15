@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -401,9 +403,7 @@ func (s *Server) updateGameServer(c *gin.Context) {
 		"networking": map[string]interface{}{
 			"serviceType": updateReq.Networking.ServiceType,
 		},
-		"gameConfig":    updateReq.GameConfig,
-		"autoRestart":   updateReq.AutoRestart,
-		"enableBackups": updateReq.EnableBackups,
+		"gameConfig": updateReq.GameConfig,
 	}
 
 	obj.Object["spec"] = spec
@@ -556,8 +556,6 @@ func unstructuredToGameServer(obj *unstructured.Unstructured) (*GameServer, erro
 		gs.Spec.GameType, _, _ = unstructured.NestedString(spec, "gameType")
 		gs.Spec.ServerName, _, _ = unstructured.NestedString(spec, "serverName")
 		gs.Spec.ServerDescription, _, _ = unstructured.NestedString(spec, "serverDescription")
-		gs.Spec.AutoRestart, _, _ = unstructured.NestedBool(spec, "autoRestart")
-		gs.Spec.EnableBackups, _, _ = unstructured.NestedBool(spec, "enableBackups")
 
 		if resources, found, _ := unstructured.NestedMap(spec, "resources"); found {
 			gs.Spec.Resources.CPU, _, _ = unstructured.NestedString(resources, "cpu")
@@ -577,10 +575,366 @@ func unstructuredToGameServer(obj *unstructured.Unstructured) (*GameServer, erro
 	// Extract status
 	if status, found, err := unstructured.NestedMap(obj.Object, "status"); err == nil && found {
 		gs.Status.Phase, _, _ = unstructured.NestedString(status, "phase")
-		gs.Status.ExternalIP, _, _ = unstructured.NestedString(status, "externalIP")
 		playersOnline, _, _ := unstructured.NestedInt64(status, "playersOnline")
 		gs.Status.PlayersOnline = int(playersOnline)
 	}
 
 	return gs, nil
+}
+
+// getGameServerMetrics gets CPU and memory metrics for a GameServer pod
+func (s *Server) getGameServerMetrics(c *gin.Context) {
+	namespace := c.Param("namespace")
+	name := c.Param("name")
+
+	// Get the GameServer claim to find the resourceRef and game type
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion("gameplane.kubelize.io/v1alpha1")
+	obj.SetKind("GameServer")
+	obj.SetNamespace(namespace)
+	obj.SetName(name)
+
+	if err := s.k8sClient.Get(context.TODO(), client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, obj); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": fmt.Sprintf("GameServer not found: %v", err),
+		})
+		return
+	}
+
+	// Extract configured resources from spec
+	spec, _, _ := unstructured.NestedMap(obj.Object, "spec")
+	resources, _, _ := unstructured.NestedMap(spec, "resources")
+	configuredCPU, _, _ := unstructured.NestedString(resources, "cpu")
+	configuredMemory, _, _ := unstructured.NestedString(resources, "memory")
+	gameType, _, _ := unstructured.NestedString(spec, "gameType")
+
+	// Get the resourceRef.name from the claim spec (not status)
+	resourceRef, _, _ := unstructured.NestedMap(spec, "resourceRef")
+	resourceRefName, _, _ := unstructured.NestedString(resourceRef, "name")
+
+	if resourceRefName == "" {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "GameServer resourceRef.name not found in status - server may not be ready yet",
+		})
+		return
+	}
+
+	// Construct the actual namespace: {resourceRef.name}-{gameType}
+	actualNamespace := fmt.Sprintf("%s-%s", resourceRefName, gameType)
+
+	// The pod labels use the full XGameServer name (resourceRef.name + gameType)
+	// which matches the namespace pattern
+	expectedPodLabel := fmt.Sprintf("%s-%s", resourceRefName, gameType)
+
+	// Find pods with the gameserver label in the actual namespace
+	podList, err := s.kubeClient.CoreV1().Pods(actualNamespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("kubelize.io/gameserver=%s", expectedPodLabel),
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to list pods in namespace %s: %v", actualNamespace, err),
+		})
+		return
+	}
+
+	if len(podList.Items) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":           fmt.Sprintf("No pods found for GameServer %s in namespace %s", name, actualNamespace),
+			"actualNamespace": actualNamespace,
+			"resourceRefName": resourceRefName,
+			"gameType":        gameType,
+			"claimName":       name,
+		})
+		return
+	}
+
+	pod := podList.Items[0] // Use the first pod
+
+	// Get actual metrics from metrics-server
+	cpuUsage, memoryUsage, err := s.getPodMetrics(pod.Name, actualNamespace)
+	if err != nil {
+		// Fallback to showing pod exists but metrics unavailable
+		c.JSON(http.StatusOK, gin.H{
+			"podName":      pod.Name,
+			"podNamespace": actualNamespace,
+			"metrics": gin.H{
+				"cpu": gin.H{
+					"current":    "0m",
+					"configured": configuredCPU,
+					"percentage": 0,
+				},
+				"memory": gin.H{
+					"current":    "0Mi",
+					"configured": configuredMemory,
+					"percentage": 0,
+				},
+			},
+			"status": "metrics_unavailable",
+			"error":  fmt.Sprintf("Metrics unavailable: %v", err),
+		})
+		return
+	}
+
+	// Calculate percentages based on configured resources
+	cpuPercentage := calculateCPUPercentage(cpuUsage, configuredCPU)
+	memoryPercentage := calculateMemoryPercentage(memoryUsage, configuredMemory)
+
+	// Format the current usage for display
+	formattedCPU := formatCPUForDisplay(cpuUsage)
+	formattedMemory := formatMemoryForDisplay(memoryUsage)
+
+	c.JSON(http.StatusOK, gin.H{
+		"podName":      pod.Name,
+		"podNamespace": actualNamespace,
+		"metrics": gin.H{
+			"cpu": gin.H{
+				"current":    formattedCPU,
+				"configured": configuredCPU,
+				"percentage": cpuPercentage,
+			},
+			"memory": gin.H{
+				"current":    formattedMemory,
+				"configured": configuredMemory,
+				"percentage": memoryPercentage,
+			},
+		},
+		"status": "success",
+	})
+}
+
+// getPodMetrics fetches actual CPU and memory usage from metrics-server
+func (s *Server) getPodMetrics(podName, namespace string) (cpuUsage, memoryUsage string, err error) {
+	// Use metrics-server API to get pod metrics
+	metricsClient := s.kubeClient.CoreV1().RESTClient().
+		Get().
+		AbsPath("/apis/metrics.k8s.io/v1beta1").
+		Namespace(namespace).
+		Resource("pods").
+		Name(podName)
+
+	result := metricsClient.Do(context.TODO())
+	if result.Error() != nil {
+		return "", "", fmt.Errorf("failed to get metrics: %v", result.Error())
+	}
+
+	rawBytes, err := result.Raw()
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read metrics response: %v", err)
+	}
+
+	// Parse the JSON response
+	var metricsResponse map[string]interface{}
+	if err := json.Unmarshal(rawBytes, &metricsResponse); err != nil {
+		return "", "", fmt.Errorf("failed to parse metrics response: %v", err)
+	}
+
+	// Extract containers metrics
+	containers, ok := metricsResponse["containers"].([]interface{})
+	if !ok || len(containers) == 0 {
+		return "", "", fmt.Errorf("no container metrics found")
+	}
+
+	// Get metrics from the first container (main game server container)
+	container := containers[0].(map[string]interface{})
+	usage, ok := container["usage"].(map[string]interface{})
+	if !ok {
+		return "", "", fmt.Errorf("no usage data found")
+	}
+
+	cpu, ok := usage["cpu"].(string)
+	if !ok {
+		cpu = "0m"
+	}
+
+	memory, ok := usage["memory"].(string)
+	if !ok {
+		memory = "0Mi"
+	}
+
+	return cpu, memory, nil
+}
+
+// calculateCPUPercentage calculates CPU usage percentage from current vs configured
+func calculateCPUPercentage(current, configured string) float64 {
+	currentMillicores := parseCPUToMillicores(current)
+	configuredMillicores := parseCPUToMillicores(configured)
+	
+	// Debug logging
+	fmt.Printf("CPU Calculation: current=%s (%d millicores), configured=%s (%d millicores)\n", 
+		current, currentMillicores, configured, configuredMillicores)
+	
+	if configuredMillicores == 0 {
+		fmt.Printf("CPU: configured is 0, returning 0%%\n")
+		return 0
+	}
+	
+	percentage := (float64(currentMillicores) / float64(configuredMillicores)) * 100
+	fmt.Printf("CPU: calculated percentage = %.2f%%\n", percentage)
+	
+	// Cap at 100% for display purposes, but allow calculation above 100% for burstable resources
+	return percentage
+}
+
+// calculateMemoryPercentage calculates memory usage percentage from current vs configured
+func calculateMemoryPercentage(current, configured string) float64 {
+	currentBytes := parseMemoryToBytes(current)
+	configuredBytes := parseMemoryToBytes(configured)
+	
+	if configuredBytes == 0 {
+		return 0
+	}
+	
+	return (float64(currentBytes) / float64(configuredBytes)) * 100
+}
+
+// parseCPUToMillicores converts CPU strings like "287m", "1.5", "2", "2001669174n" to millicores
+func parseCPUToMillicores(cpu string) int64 {
+	if cpu == "" {
+		return 0
+	}
+	
+	fmt.Printf("Parsing CPU: %s\n", cpu)
+	
+	// Handle nanoseconds (e.g., "2001669174n")
+	if strings.HasSuffix(cpu, "n") {
+		cpu = strings.TrimSuffix(cpu, "n")
+		if val, err := strconv.ParseInt(cpu, 10, 64); err == nil {
+			// Convert nanoseconds to millicores: 1 millicore = 1,000,000 nanoseconds
+			millicores := val / 1000000
+			fmt.Printf("Parsed as nanoseconds, converted to millicores: %d\n", millicores)
+			return millicores
+		}
+	}
+	
+	// Handle millicores (e.g., "287m")
+	if strings.HasSuffix(cpu, "m") {
+		cpu = strings.TrimSuffix(cpu, "m")
+		if val, err := strconv.ParseInt(cpu, 10, 64); err == nil {
+			fmt.Printf("Parsed as millicores: %d\n", val)
+			return val
+		}
+	}
+	
+	// Handle cores (e.g., "1.5", "2")
+	if val, err := strconv.ParseFloat(cpu, 64); err == nil {
+		millicores := int64(val * 1000) // Convert to millicores
+		fmt.Printf("Parsed as cores, converted to millicores: %d\n", millicores)
+		return millicores
+	}
+	
+	fmt.Printf("Failed to parse CPU: %s\n", cpu)
+	return 0
+}
+
+// parseMemoryToBytes converts memory strings like "54Mi", "2Gi", "1024Ki" to bytes
+func parseMemoryToBytes(memory string) int64 {
+	if memory == "" {
+		return 0
+	}
+	
+	// Handle different memory units
+	if strings.HasSuffix(memory, "Ki") {
+		memory = strings.TrimSuffix(memory, "Ki")
+		if val, err := strconv.ParseInt(memory, 10, 64); err == nil {
+			return val * 1024
+		}
+	} else if strings.HasSuffix(memory, "Mi") {
+		memory = strings.TrimSuffix(memory, "Mi")
+		if val, err := strconv.ParseInt(memory, 10, 64); err == nil {
+			return val * 1024 * 1024
+		}
+	} else if strings.HasSuffix(memory, "Gi") {
+		memory = strings.TrimSuffix(memory, "Gi")
+		if val, err := strconv.ParseInt(memory, 10, 64); err == nil {
+			return val * 1024 * 1024 * 1024
+		}
+	} else if strings.HasSuffix(memory, "K") {
+		memory = strings.TrimSuffix(memory, "K")
+		if val, err := strconv.ParseInt(memory, 10, 64); err == nil {
+			return val * 1000
+		}
+	} else if strings.HasSuffix(memory, "M") {
+		memory = strings.TrimSuffix(memory, "M")
+		if val, err := strconv.ParseInt(memory, 10, 64); err == nil {
+			return val * 1000 * 1000
+		}
+	} else if strings.HasSuffix(memory, "G") {
+		memory = strings.TrimSuffix(memory, "G")
+		if val, err := strconv.ParseInt(memory, 10, 64); err == nil {
+			return val * 1000 * 1000 * 1000
+		}
+	}
+	
+	// Handle plain bytes
+	if val, err := strconv.ParseInt(memory, 10, 64); err == nil {
+		return val
+	}
+	
+	return 0
+}
+
+// formatCPUForDisplay converts CPU values to a user-friendly format
+func formatCPUForDisplay(cpu string) string {
+	if cpu == "" {
+		return "0m"
+	}
+	
+	// Handle nanoseconds (e.g., "1998140547n")
+	if strings.HasSuffix(cpu, "n") {
+		cpu = strings.TrimSuffix(cpu, "n")
+		if val, err := strconv.ParseInt(cpu, 10, 64); err == nil {
+			// Convert nanoseconds to millicores
+			millicores := val / 1000000 // 1 millicore = 1,000,000 nanoseconds
+			return fmt.Sprintf("%dm", millicores)
+		}
+	}
+	
+	// Handle millicores (e.g., "287m")
+	if strings.HasSuffix(cpu, "m") {
+		return cpu // Already in the right format
+	}
+	
+	// Handle cores (e.g., "1.5", "2")
+	if val, err := strconv.ParseFloat(cpu, 64); err == nil {
+		if val >= 1 {
+			return fmt.Sprintf("%.1f", val) // Show as cores for values >= 1
+		} else {
+			return fmt.Sprintf("%.0fm", val*1000) // Convert to millicores for values < 1
+		}
+	}
+	
+	return cpu // Return as-is if we can't parse it
+}
+
+// formatMemoryForDisplay converts memory values to a user-friendly format
+func formatMemoryForDisplay(memory string) string {
+	if memory == "" {
+		return "0Mi"
+	}
+	
+	// Parse to bytes first
+	bytes := parseMemoryToBytes(memory)
+	if bytes == 0 {
+		return "0Mi"
+	}
+	
+	// Convert to the most appropriate unit
+	const (
+		KiB = 1024
+		MiB = 1024 * 1024
+		GiB = 1024 * 1024 * 1024
+	)
+	
+	if bytes >= GiB {
+		return fmt.Sprintf("%.1fGi", float64(bytes)/float64(GiB))
+	} else if bytes >= MiB {
+		return fmt.Sprintf("%.0fMi", float64(bytes)/float64(MiB))
+	} else if bytes >= KiB {
+		return fmt.Sprintf("%.0fKi", float64(bytes)/float64(KiB))
+	} else {
+		return fmt.Sprintf("%d", bytes)
+	}
 }

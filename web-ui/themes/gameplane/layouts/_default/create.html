@@ -242,12 +242,45 @@
                             <a href="/" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-2"></i>Cancel
                             </a>
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-rocket me-2"></i>Create Server
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-info" onclick="previewYAML()">
+                                    <i class="fas fa-eye me-2"></i>Preview YAML
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-rocket me-2"></i>Create Server
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- YAML Preview Modal -->
+<div class="modal fade" id="yamlPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-code me-2"></i>
+                    GameServer YAML Preview
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This is the GameServer claim that will be created when you submit the form.
+                </div>
+                <pre id="yaml-content" class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code></code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="copyYAMLToClipboard()">
+                    <i class="fas fa-copy me-2"></i>Copy to Clipboard
+                </button>
             </div>
         </div>
     </div>
